@@ -1,15 +1,20 @@
 Gestão de Usuários:
+
 Cadastro de Usuários:
+
 
 [CHECK]Permitir o registro de usuários com diferentes papéis (administrador, recepcionista, médico, paciente).
 [CHECK]Autenticação JWT: Implementar autenticação via JWT para proteger os endpoints.
 [CHECK]Administradores podem gerenciar médicos e pacientes.
 [CHECK]Recepcionistas podem gerenciar agendamentos e pacientes.
-[]Médicos podem ver seus agendamentos e dados financeiros.
+[CHECK]Médicos podem ver seus agendamentos e dados financeiros.
+
 
 Cadastro de Pacientes:
+
 CRUD de Pacientes:
 
+  
 [CHECK]Permitir o cadastro, edição, visualização e exclusão de pacientes.
 [CHECK]Informações do Paciente: Nome, data de nascimento, CPF, telefone, email, endereço.
 
@@ -51,5 +56,4 @@ Observações:
 [OK]Apenas administrados podem cadastrar, editar ou excluir médicos.
 [OK]Apenas administrados podem acessar as informações financeiras gerais.
 [OK]Os médicos podem acesso as suas consultas realizadas e repasses recebidos
-
 

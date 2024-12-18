@@ -132,7 +132,7 @@ class Appointment(models.Model):
     )
          
     def __str__(self):
-        return f'{self.user} - {self.date}'
+        return self.date
     
 
 class Payments(models.Model):
@@ -175,8 +175,6 @@ class Payments(models.Model):
     )
 
 
-    def __str__(self):
-        return f'{self.user} - {self.appointment}'
 
 
 class AdminList(models.Model):
@@ -185,8 +183,7 @@ class AdminList(models.Model):
         on_delete=models.DO_NOTHING
         
     )
-    def __str__(self):
-        return f'{self.user} - {self.appointment}'
+    
     
     
 class DoctorList(models.Model):
@@ -195,7 +192,5 @@ class DoctorList(models.Model):
         on_delete=models.DO_NOTHING
         
     )
-    def __str__(self):
-        return f'{self.user} - {self.appointment}'
     
     

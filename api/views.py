@@ -21,13 +21,12 @@ class UsersViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
          
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        
+        user = Users.objects.filter(pk = request.user.id).first()
         if not request.user.is_authenticated or not user.is_admin:
             return Response(
                 'Apenas administradores podem listar usuarios',
                 status = HTTP_400_BAD_REQUEST
-            )'''
+            )
         
         # filtro para mostrar apenas os administradores e receptionistas
         users = Users.objects.filter(
@@ -43,12 +42,12 @@ class UsersViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         
         
-        user = Users.objects.filter(pk = request.user.id).first()
+        '''user = Users.objects.filter(pk = request.user.id).first()
         if not request.user.is_authenticated or not user.is_admin:
             return Response(
                 'Apenas administradores podem criar usuarios',
                 status = HTTP_400_BAD_REQUEST
-            )
+            )'''
             
         data = request.data
         if not data:
@@ -78,18 +77,20 @@ class UsersViewSet(viewsets.ModelViewSet):
                 status = HTTP_400_BAD_REQUEST
             )'''
             
-        try:
-                user = Users.objects.get(pk=pk)
-                data = request.data
+        user = Users.objects.get(pk=pk)
+        data = request.data
+        if not data:                    
+                return Response(
+                    'informe os dados do usuario', 
+                     status=HTTP_400_BAD_REQUEST
+                     )
                 
-                serializer= UsersSerializer(user,data,partial=True)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(serializer.data)
-                return Response(serializer.errors, status=HTTP_200_OK)
-                    
-        except Exception as e:
-                return Response(e, status=HTTP_400_BAD_REQUEST) 
+        serializer= UsersSerializer(user,data,partial=True)
+        if serializer.is_valid():
+                serializer.save()
+        return Response(serializer.data,status=HTTP_200_OK)
+    
+
     
     
     def destroy(self, request, *args, **kwargs):
@@ -156,19 +157,19 @@ class DoctorsViewSet(viewsets.ModelViewSet):
                 'Desculpe, apenas administradores podem EDITAR medicos',
                 status = HTTP_400_BAD_REQUEST
             )'''
-        try:
-                doctor = Doctors.objects.get(pk=pk)
-                data = request.data
+            
+        user = Users.objects.get(pk=pk)
+        data = request.data
+        if not data:                    
+                return Response(
+                    'informe os dados do usuario', 
+                     status=HTTP_400_BAD_REQUEST
+                     )
                 
-                serializer= DoctorsSerializer(doctor,data,partial=True)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(serializer.data)
-                return Response(serializer.errors, status=HTTP_200_OK)
-                    
-        except Exception as e:
-                return Response(e, status=HTTP_400_BAD_REQUEST) 
-    
+        serializer= UsersSerializer(user,data,partial=True)
+        if serializer.is_valid():
+                serializer.save()
+        return Response(serializer.data,status=HTTP_200_OK)
     
     def destroy(self, request, *args, **kwargs):
         
@@ -180,8 +181,8 @@ class DoctorsViewSet(viewsets.ModelViewSet):
             )'''
         
         doctor = self.get_object()
-        doctor.is_active = False
-        doctor.save()
+        doctor.delete()
+                
         return Response([], status = HTTP_204_NO_CONTENT)
 
 
@@ -237,20 +238,20 @@ class PatientsViewSet(viewsets.ModelViewSet):
             return Response(
                 'Desculpe, apenas recepcionistas podem EDITAR pacientes',
                 status = HTTP_400_BAD_REQUEST
-            )'''
+            )'''    
             
-        try:
-                patient = Patients.objects.get(pk=pk)
-                data = request.data
+        user = Users.objects.get(pk=pk)
+        data = request.data
+        if not data:                    
+                return Response(
+                    'informe os dados do usuario', 
+                     status=HTTP_400_BAD_REQUEST
+                     )
                 
-                serializer = PatientsSerializer(patient,data,partial=True)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(serializer.data)
-                return Response(serializer.errors, status=HTTP_200_OK)
-                    
-        except Exception as e:
-                return Response(e, status=HTTP_400_BAD_REQUEST) 
+        serializer= UsersSerializer(user,data,partial=True)
+        if serializer.is_valid():
+                serializer.save()
+        return Response(serializer.data,status=HTTP_200_OK)
               
                 
     def destroy(self, request, *args, **kwargs):
@@ -263,8 +264,7 @@ class PatientsViewSet(viewsets.ModelViewSet):
             )'''
         
         patient = self.get_object()
-        patient.is_active = False
-        patient.save()  
+        patient.delete()
         
         return Response([], status = HTTP_204_NO_CONTENT)
     
@@ -297,18 +297,17 @@ class AppointmentsViewSet(viewsets.ModelViewSet):
         
     def create(self, request, *args, **kwargs):
         
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_receptionist or 
-        not user.is_doctor:
+        user = Users.objects.filter(pk = request.user.id).first()
+        if not request.user.is_authenticated or not user.is_receptionist: 
             return Response(
-                'Desculpe, apenas recepcionistas podem DELETAR pacientes',
+                'Apenas recepcionistas OU medicos podem CRIAR consultas',
                 status = HTTP_400_BAD_REQUEST
-            )'''
+            )
             
         data = request.data
         if not data:
             return Response(
-                'informe os dados da Consultaa', 
+                'informe os dados da consulta', 
                 status=HTTP_400_BAD_REQUEST
             )
             
@@ -364,18 +363,18 @@ class AppointmentsViewSet(viewsets.ModelViewSet):
                 status = HTTP_400_BAD_REQUEST
             )
             
-        try:
-                appointment = Appointment.objects.get(pk=pk)
-                data = request.data
-                
-                serializer= AppointmentSerializer(appointment,data,partial=True)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(serializer.data)
-                return Response(serializer.errors, status=HTTP_200_OK)
+        appointment = Appointment.objects.get(pk=pk)
+        data = request.data
+        if not data:
+                return Response(
+                        'informe os dados da consulta para edição', 
+                        status=HTTP_400_BAD_REQUEST
+                )
                     
-        except Exception as e:
-                return Response(e, status=HTTP_400_BAD_REQUEST) 
+        serializer= AppointmentSerializer(appointment,data,partial=True)
+        if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=HTTP_200_OK)
 
 
     def destroy(self, request, *args, **kwargs):
@@ -403,9 +402,10 @@ class PaymentsViewSet(viewsets.ModelViewSet):
         '''user = Users.objects.filter(pk = request.user.id).first()
         if not request.user.is_authenticated or not user.is_admin:
             return Response(
-                'Desculpe, apenas administradores podem DELETAR medicos',
+                'Desculpe, apenas administradores podem LISTAR payments',
                 status = HTTP_400_BAD_REQUEST
             )'''
+            
 
         payments= Payments.objects.all()
         serializer = PaymentsSerializer(payments, many=True)
@@ -413,21 +413,21 @@ class PaymentsViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         
-        '''user = Users.objects.filter(pk = request.user.id).first()
+        user = Users.objects.filter(pk = request.user.id).first()
         if not request.user.is_authenticated or not user.is_admin:
             return Response(
-                'Desculpe, apenas administradores podem DELETAR medicos',
+                'Desculpe, apenas administradores podem CRIAR payments',
                 status = HTTP_400_BAD_REQUEST
-            )'''
+            )
         
         data = request.data
         if not data:
             return Response(
-                'informe os dados da Consultaa', 
+                'informe os dados do pagamento', 
                 status=HTTP_400_BAD_REQUEST
             )
         
-        value = data.get('value')
+        value = float(data.get('value',0))
         payment_type = data.get('payment_type')
         
         appointment_id = data.get('appointment')
@@ -496,13 +496,12 @@ class DoctorsListViwSet(viewsets.ModelViewSet):
     
     def list(self, request, *args, **kwargs):
         
-        '''user = Users.objects.filter(pk = request.user.id).first()
+        user = Users.objects.filter(pk = request.user.id).first()
         if not request.user.is_authenticated or not user.is_doctor:
             return Response(
-                'Desculpe, apenas administradores podem visualizar 
-                relatórios financeiros',
+                'Desculpe, apenas MEDICOS podem visualizar relatórios financeiros',
                 status = HTTP_400_BAD_REQUEST
-            )'''
+            )
             
             # relatorio dos medicos
         list= []

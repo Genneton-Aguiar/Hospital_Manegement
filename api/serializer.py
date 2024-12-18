@@ -25,7 +25,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = ('id','status_type','type','patient','doctor',  'date', 
                   'hour', 'is_active')
-
+        
 class PaymentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payments

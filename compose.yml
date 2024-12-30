@@ -1,0 +1,54 @@
+
+services:
+
+  web:
+    build: .
+    container_name: hospital-control
+    volumes:
+      - .:/api
+    depends_on:
+      - db_hospital
+    networks:
+      - hospital_net
+    command: python manage.py runserver
+    ports:
+      - "8000:8000"
+
+  db_hospital: 
+    image: postgres:latest
+    container_name: db-hospital
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgre1090  
+      POSTGRES_DB: hospital
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - hospital_net
+
+  sonarqube:
+    image: sonarqube:10.3-community
+    depends_on:
+      - db_hospital
+    networks:
+      - sonar_net
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonar_data2:/opt/sonarqube/data
+      - sonar_logs2:/opt/sonarqube/logs
+
+
+networks:
+  hospital_net:
+    driver: bridge
+  sonar_net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  sonar_data2:
+  sonar_logs2:
+  sonar_db2:

@@ -3,6 +3,7 @@ from decouple import config
 import dj_database_url
 from datetime import timedelta
 
+
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -74,12 +75,25 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+KEYCLOAK_SERVER_URL = "http://localhost:8080/realms/Hospital_control%20"  
+KEYCLOAK_REALM = "Hospital_control"
+KEYCLOAK_CLIENT_ID = "api_client" 
+KEYCLOAK_CLIENT_SECRET = "p9Zce8IBufDUzwA8kM4LPRM6aMBw2Reh" 
+KEYCLOAK_VERIFY_SSL = False 
+
+
 REST_FRAMEWORK = {
    
     'DEFAULT_AUTHENTICATION_CLASSES': (
        
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'api.auth.KeycloakAuthentication',
     )
+    ,
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
    
 }
 

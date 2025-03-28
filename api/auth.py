@@ -33,3 +33,4 @@ class KeycloakAuthentication(BaseAuthentication):
             return (user_info, token)
         except Exception:
             raise AuthenticationFailed("Erro ao autenticar com Keycloak.")
+        

@@ -1,6 +1,5 @@
-from django.shortcuts import render
+
 from rest_framework import viewsets
-from django.contrib.auth.models import User
 from rest_framework.response import Response
 from .utils import *
 from django.db.models import Q
@@ -15,99 +14,53 @@ from rest_framework.status import (
 from .models import *
 from .serializer import *
 
+from .usecases.user_usecase import UserUseCase
+from .repository.user_repository import UserRepository
+
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = Users.objects.all()
     serializer_class = UsersSerializer
 
     def list(self, request, *args, **kwargs):
          
-        user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Apenas administradores podem listar usuarios',
-                status = HTTP_400_BAD_REQUEST
-            )
-        
-        # filtro para mostrar apenas os administradores e receptionistas
-        users = Users.objects.filter(
-            Q(is_admin = True) | Q(is_receptionist = True),
-            is_active = True   
-        )
-        
-        
-        serializer = UsersSerializer(users, many=True)
-        return Response(serializer.data, status=HTTP_200_OK)
-
+        try:
+            self.UserUseCase = UserUseCase(UserRepository())
+            users = self.UserUseCase.list_adm_receptionists(request.user)
+            serializer = UsersSerializer(users, many=True)
+            return Response(serializer.data, status=HTTP_200_OK)
+        except PermissionError as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
     def create(self, request, *args, **kwargs):
         
-        
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Apenas administradores podem criar usuarios',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-            
-        data = request.data
-        if not data:
-            return Response(
-                'informe os dados do usuario', 
-                status=HTTP_400_BAD_REQUEST
-                )
-
-        user = create_users(data)
-
-        serializer = self.get_serializer(user)
-        headers = self.get_success_headers(serializer.data)
-        
-        return Response(
-            serializer.data, 
-            status = HTTP_201_CREATED, 
-            headers=headers
-            )
-
+        try:
+            self.UserUseCase = UserUseCase(UserRepository())
+            data = request.data
+            user = self.UserUseCase.create_user(data)
+            serializer = UsersSerializer(user)
+            return Response(serializer.data, status=HTTP_201_CREATED)
+        except ValueError as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
     def partial_update(self, request, pk):
       
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Apenas administradores podem listar usuarios',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-            
-        user = Users.objects.get(pk=pk)
-        data = request.data
-        if not data:                    
-                return Response(
-                    'informe os dados do usuario', 
-                     status=HTTP_400_BAD_REQUEST
-                     )
-                
-        serializer= UsersSerializer(user,data,partial=True)
-        if serializer.is_valid():
-                serializer.save()
-        return Response(serializer.data,status=HTTP_200_OK)
-    
-
-    
+        try:
+            self.UserUseCase = UserUseCase(UserRepository())
+            data= request.data    
+            user = self.user_usecase.update_user(pk, data)
+            serializer = UsersSerializer(user)
+            return Response(serializer.data, status=HTTP_200_OK)
+        except ValueError as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
     
     def destroy(self, request, *args, **kwargs):
-        
-        ''' user = Users.objects.filter(pk = request.user.id).first()
-         if not request.user.is_authenticated or not user.is_admin:
-            if not request.user.is_authenticated or not user.is_admin:
-                return Response(
-                    'Desculpe, apenas administradores podem deletar medicos',
-                    status = HTTP_400_BAD_REQUEST
-                )'''
-            
-        users = self.get_object()
-        users.is_active = False
-        users.save()
-      
-        return Response([], status = HTTP_204_NO_CONTENT)
+        try:
+            self.user_usecase = UserUseCase(UserRepository())
+            pk = kwargs.get('pk')
+            self.user_usecase.delete_user(pk)
+            return Response([], status=HTTP_204_NO_CONTENT)
+        except ValueError as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
 
 class DoctorsViewSet(viewsets.ModelViewSet):

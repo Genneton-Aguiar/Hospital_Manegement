@@ -7,11 +7,11 @@ class DoctorUseCase:
         self.user_repository = user_repository
 
     def list_doctors(self):
-        """Lista todos os médicos."""
+     
         return self.doctor_repository.list_all_doctors()
 
     def create_doctor(self, data, current_user):
-        """Cria um novo médico."""
+      
         if not current_user.is_authenticated or not current_user.is_admin:
             raise PermissionError("Apenas administradores podem criar médicos.")
 
@@ -36,7 +36,7 @@ class DoctorUseCase:
             )
 
     def update_doctor(self, doctor_id, data, current_user):
-        """Atualiza os dados de um médico."""
+        
         if not current_user.is_authenticated or not current_user.is_admin:
             raise PermissionError("Apenas administradores podem atualizar médicos.")
 
@@ -49,7 +49,7 @@ class DoctorUseCase:
         return self.doctor_repository.update_doctor(doctor, data)
 
     def delete_doctor(self, doctor_id, current_user):
-        """Remove um médico."""
+        
         if not current_user.is_authenticated or not current_user.is_admin:
             raise PermissionError("Apenas administradores podem remover médicos.")
 

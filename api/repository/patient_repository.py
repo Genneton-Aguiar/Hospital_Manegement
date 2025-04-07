@@ -3,11 +3,11 @@ from django.db import transaction
 
 class PatientRepository:
     def list_all_patients(self):
-        """Retorna todos os pacientes."""
+       
         return Patients.objects.all()
 
     def get_patient_by_id(self, patient_id):
-        """Busca um paciente pelo ID."""
+   
         return Patients.objects.filter(pk=patient_id).first()
 
     def create_patient(self, user, birthdate, cpf, telephone, address):
@@ -23,14 +23,14 @@ class PatientRepository:
             return patient
 
     def update_patient(self, patient, data):
-        """Atualiza os dados de um paciente."""
+       
         for key, value in data.items():
             setattr(patient, key, value)
         patient.save()
         return patient
 
     def delete_patient(self, patient):
-        """Remove um paciente."""
+      
         patient.delete()
         return True
     

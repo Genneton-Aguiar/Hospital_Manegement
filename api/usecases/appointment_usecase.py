@@ -9,7 +9,7 @@ class AppointmentUseCase:
         self.doctor_repository = doctor_repository
 
     def list_appointments(self, status_type=None):
-        """Lista todas as consultas, com filtro opcional por status."""
+        
         appointments = self.appointment_repository.list_all_appointments()
         
         if status_type:
@@ -17,7 +17,7 @@ class AppointmentUseCase:
         return appointments
 
     def create_appointment(self, data, current_user):
-        """Cria uma nova consulta."""
+        
         if not current_user.is_authenticated or not (current_user.is_receptionist or current_user.is_doctor):
             raise PermissionError("Apenas recepcionistas ou médicos podem criar consultas.")
 
@@ -62,7 +62,7 @@ class AppointmentUseCase:
         )
 
     def update_appointment(self, appointment_id, data, current_user):
-        """Atualiza os dados de uma consulta."""
+   
         if not current_user.is_authenticated or not current_user.is_doctor:
             raise PermissionError("Apenas médicos podem atualizar consultas.")
 
@@ -75,7 +75,7 @@ class AppointmentUseCase:
         return self.appointment_repository.update_appointment(appointment, data)
 
     def deactivate_appointment(self, appointment_id, current_user):
-        """Desativa uma consulta."""
+      
         if not current_user.is_authenticated or not current_user.is_receptionist:
             raise PermissionError("Apenas recepcionistas podem desativar consultas.")
 

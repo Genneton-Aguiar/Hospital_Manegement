@@ -14,7 +14,7 @@ router.register('doctor', DoctorsViewSet, basename = 'doctor')
 router.register('patient', PatientsViewSet, basename = 'patient')
 router.register('appointment', AppointmentsViewSet, basename = 'appointment')
 router.register('payments', PaymentsViewSet, basename = 'payments')
-router.register('admlist', AdminListViwSet, basename = 'admlist')
+router.register('admlist', AdminListViewSet, basename = 'admlist')
 router.register('doclist', DoctorsListViwSet, basename = 'doclist')
 
 

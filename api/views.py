@@ -1,8 +1,6 @@
 
 from rest_framework import viewsets
 from rest_framework.response import Response
-from .utils import *
-from django.db.models import Q
 
 from rest_framework.status import (
     HTTP_201_CREATED,
@@ -11,11 +9,45 @@ from rest_framework.status import (
     HTTP_204_NO_CONTENT,
 )
 
-from .models import *
-from .serializer import *
+from .models import (
+    Users, 
+    Patients, 
+    Doctors, 
+    Appointment, 
+    Payments
+    )
+
+from .serializer import (
+    UsersSerializer, 
+    PatientsSerializer, 
+    DoctorsSerializer, 
+    AppointmentSerializer, 
+    PaymentsSerializer,
+    AdminListSerializer, 
+    DoctorListSerializer
+    )
 
 from .usecases.user_usecase import UserUseCase
 from .repository.user_repository import UserRepository
+
+from .usecases.doctor_usecase import DoctorUseCase
+from .repository.doctor_repository import DoctorRepository
+
+from .usecases.patient_usecase import PatientUseCase
+from .repository.patient_repository import PatientRepository
+
+from .usecases.appointment_usecase import AppointmentUseCase
+from .repository.appointment_repository import AppointmentRepository
+
+from .usecases.payment_usecase import PaymentUseCase
+from .repository.payment_repository import PaymentRepository
+
+from .usecases.admin_list_usecase import AdminListUseCase
+from .repository.admin_list_repository import AdminListRepository
+
+from .usecases.doctor_list_usecase import DoctorListUseCase
+from .repository.doctor_list_repository import DoctorListRepository
+
 
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = Users.objects.all()
@@ -63,411 +95,197 @@ class UsersViewSet(viewsets.ModelViewSet):
             return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
 
-class DoctorsViewSet(viewsets.ModelViewSet):
+class DoctorsViewSet(viewsets.ViewSet):
     queryset = Doctors.objects.all()
     serializer_class = DoctorsSerializer
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.doctor_usecase = DoctorUseCase(DoctorRepository(),UserRepository())
 
-    def list(self, request, *args, **kwargs):   
+    def list(self, request, *args, **kwargs):
 
-
-        doctors = Doctors.objects.all()
+        doctors = self.doctor_usecase.list_doctors()
         serializer = DoctorsSerializer(doctors, many=True)
         return Response(serializer.data, status=HTTP_200_OK)
 
-
     def create(self, request, *args, **kwargs):
         
-        user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Desculpe, apenas administradores podem CRIAR medicos',
-                status = HTTP_400_BAD_REQUEST
-            )
+        try:
+            data = request.data
+            doctor = self.doctor_usecase.create_doctor(data, request.user)
+            serializer = DoctorsSerializer(doctor)
+            return Response(serializer.data, status=HTTP_201_CREATED)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
-        data = request.data
-        if not data:
-            return Response(
-                'informe os dados do medico', 
-                status=HTTP_400_BAD_REQUEST
-            )
+    def partial_update(self, request, pk=None):
 
-        doctor = create_doctor(data)
-        serializer = self.get_serializer(doctor)
-        headers = self.get_success_headers(serializer.data)
-        
-        return Response(
-            serializer.data, 
-            status = HTTP_201_CREATED, 
-            headers=headers
-        )
+        try:
+            data = request.data
+            doctor = self.doctor_usecase.update_doctor(pk, data, request.user)
+            serializer = DoctorsSerializer(doctor)
+            return Response(serializer.data, status=HTTP_200_OK)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
+    def destroy(self, request, pk=None):
 
-    def partial_update(self, request, pk):
-        
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Desculpe, apenas administradores podem EDITAR medicos',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-            
-        user = Users.objects.get(pk=pk)
-        data = request.data
-        if not data:                    
-                return Response(
-                    'informe os dados do usuario', 
-                     status=HTTP_400_BAD_REQUEST
-                     )
-                
-        serializer= UsersSerializer(user,data,partial=True)
-        if serializer.is_valid():
-                serializer.save()
-        return Response(serializer.data,status=HTTP_200_OK)
-    
-    def destroy(self, request, *args, **kwargs):
-        
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Desculpe, apenas administradores podem DELETAR medicos',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-        
-        doctor = self.get_object()
-        doctor.delete()
-                
-        return Response([], status = HTTP_204_NO_CONTENT)
+        try:
+            self.doctor_usecase.delete_doctor(pk, request.user)
+            return Response([], status=HTTP_204_NO_CONTENT)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
 
-class PatientsViewSet(viewsets.ModelViewSet):
+class PatientsViewSet(viewsets.ViewSet):
     queryset = Patients.objects.all()
     serializer_class = PatientsSerializer
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.patient_usecase = PatientUseCase(PatientRepository(), UserRepository())
 
     def list(self, request, *args, **kwargs):
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_receptionist:
-            return Response(
-                'Desculpe, apenas recepcionistas podem LISTAR pacientes',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-            
-        patients = Patients.objects.all()
+    
+        patients = self.patient_usecase.list_patients()
+        
         serializer = PatientsSerializer(patients, many=True)
         return Response(serializer.data, status=HTTP_200_OK)
-    
-    
+
     def create(self, request, *args, **kwargs):
-        
-        
-        user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_receptionist:
-            return Response(
-                'Desculpe, apenas recepcionistas podem CRIAR pacientes',
-                status = HTTP_400_BAD_REQUEST
-            )
-
-        data = request.data
-        if not data:
-            return Response(
-                'informe os dados do paciente', 
-                status=HTTP_400_BAD_REQUEST
-            )
-
-        patient = create_patients(data)
-        serializer = self.get_serializer(patient)
-        headers = self.get_success_headers(serializer.data)
-        
-        return Response(
-            serializer.data, 
-            status = HTTP_201_CREATED, 
-            headers=headers
-        )
-
-
-    def partial_update(self, request, pk, *args, **kwargs):
-        
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_receptionist:
-            return Response(
-                'Desculpe, apenas recepcionistas podem EDITAR pacientes',
-                status = HTTP_400_BAD_REQUEST
-            )'''    
-            
-        user = Users.objects.get(pk=pk)
-        data = request.data
-        if not data:                    
-                return Response(
-                    'informe os dados do usuario', 
-                     status=HTTP_400_BAD_REQUEST
-                     )
-                
-        serializer= UsersSerializer(user,data,partial=True)
-        if serializer.is_valid():
-                serializer.save()
-        return Response(serializer.data,status=HTTP_200_OK)
-              
-                
-    def destroy(self, request, *args, **kwargs):
-        
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_receptionist:
-            return Response(
-                'Desculpe, apenas recepcionistas podem DELETAR pacientes',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-        
-        patient = self.get_object()
-        patient.delete()
-        
-        return Response([], status = HTTP_204_NO_CONTENT)
     
+        try:
+            data = request.data
+            patient = self.patient_usecase.create_patient(data, request.user)
+            serializer = PatientsSerializer(patient)
+            return Response(serializer.data, status=HTTP_201_CREATED)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, pk=None):
+        
+        try:
+            data = request.data
+            patient = self.patient_usecase.update_patient(pk, data, request.user)
+            serializer = PatientsSerializer(patient)
+            return Response(serializer.data, status=HTTP_200_OK)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):
+
+        try:
+            self.patient_usecase.delete_patient(pk, request.user)
+            return Response([], status=HTTP_204_NO_CONTENT)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
+   
     
-class AppointmentsViewSet(viewsets.ModelViewSet):
-    queryset= Appointment.objects.all()
+class AppointmentsViewSet(viewsets.ViewSet):
+    queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.appointment_usecase = AppointmentUseCase(
+            AppointmentRepository(),
+            PatientRepository(),
+            DoctorRepository()
+        )
+
     def list(self, request, *args, **kwargs):
+        """Lista todas as consultas, com filtro opcional por status."""
+        status_type = request.GET.get('status_type')
         
-        
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_receptionist 
-        or not user.is_doctor:
-            return Response(
-                'Desculpe, apenas recepcionistas podem DELETAR pacientes',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-            
-        appointment= Appointment.objects.all()
-        
-        #filtro para agendamenos por status 
-        status = request.GET.get('status_type')
-        if status:
-                appointment = Appointment.objects.filter(status_type = status)
- 
-        serializer = AppointmentSerializer(appointment, many=True)
+        appointments = self.appointment_usecase.list_appointments(status_type)
+        serializer = AppointmentSerializer(appointments, many=True)
         return Response(serializer.data, status=HTTP_200_OK)
-        
-        
+
     def create(self, request, *args, **kwargs):
-        
-        user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_receptionist: 
-            return Response(
-                'Apenas recepcionistas OU medicos podem CRIAR consultas',
-                status = HTTP_400_BAD_REQUEST
-            )
-            
-        data = request.data
-        if not data:
-            return Response(
-                'informe os dados da consulta', 
-                status=HTTP_400_BAD_REQUEST
-            )
-            
-        type = data.get('type')
-        patient_id = data.get('patient_id')
-        doctor_id = data.get('doctor_id')
-        date = data.get('date')
-        hour = data.get('hour')
-        status_type = data.get('status_type')
-        
-        
-        patient = Patients.objects.get(user_id = patient_id)
-        doctor = Doctors.objects.get(user_id = doctor_id)
-        
-        # verificação de mesmo horario 
-        conflicting_appointments = Appointment.objects.filter(
-                doctor=doctor,
-                date=date, 
-                hour=hour,
-            ).exists()
-        
-        if conflicting_appointments == True:
-                return Response(
-                    'Este médico já tem uma consulta agendada neste horário.',
-                    status=HTTP_400_BAD_REQUEST
-                ) 
+        """Cria uma nova consulta."""
+        try:
+            data = request.data
+            appointment = self.appointment_usecase.create_appointment(data, request.user)
+            serializer = AppointmentSerializer(appointment)
+            return Response(serializer.data, status=HTTP_201_CREATED)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
-        appointment = Appointment.objects.create(
-            type=type,
-            patient=patient,
-            doctor=doctor,
-            date=date,
-            hour=hour,
-            status_type= status_type
-        )
+    def partial_update(self, request, pk=None):
+        """Atualiza os dados de uma consulta."""
+        try:
+            data = request.data
+            appointment = self.appointment_usecase.update_appointment(pk, data, request.user)
+            serializer = AppointmentSerializer(appointment)
+            return Response(serializer.data, status=HTTP_200_OK)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(appointment)
-        headers = self.get_success_headers(serializer.data)
-        
-        return Response(
-            serializer.data, 
-            status=HTTP_201_CREATED, 
-            headers=headers
-        )
-
-
-    def partial_update(self, request, pk):
-        
-        user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_doctor:
-            return Response(
-                'Desculpe, apenas Doctors podem editar pacientes',
-                status = HTTP_400_BAD_REQUEST
-            )
-            
-        appointment = Appointment.objects.get(pk=pk)
-        data = request.data
-        if not data:
-                return Response(
-                        'informe os dados da consulta para edição', 
-                        status=HTTP_400_BAD_REQUEST
-                )
-                    
-        serializer= AppointmentSerializer(appointment,data,partial=True)
-        if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=HTTP_200_OK)
-
-
-    def destroy(self, request, *args, **kwargs):
-        
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_doctor:
-            return Response(
-                'Desculpe, apenas recepcionistas podem deletar consultas',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-        
-        appointment = self.get_object()
-        appointment.is_active = False
-        appointment.save()  
-        
-        return Response([], status = HTTP_204_NO_CONTENT)   
+    def destroy(self, request, pk=None):
+        """Desativa uma consulta."""
+        try:
+            self.appointment_usecase.deactivate_appointment(pk, request.user)
+            return Response([], status=HTTP_204_NO_CONTENT)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
+           
     
-    
-class PaymentsViewSet(viewsets.ModelViewSet):
-    queryset= Payments.objects.all()
+class PaymentsViewSet(viewsets.ViewSet):
+    queryset = Payments.objects.all()
     serializer_class = PaymentsSerializer
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.payment_usecase = PaymentUseCase(PaymentRepository(), AppointmentRepository())
 
-    def list(self, request, *args, **kwargs):    
+    def list(self, request, *args, **kwargs):
+    
+        payments = self.payment_usecase.list_payments()
         
-        '''user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Desculpe, apenas administradores podem LISTAR payments',
-                status = HTTP_400_BAD_REQUEST
-            )'''
-            
-
-        payments= Payments.objects.all()
         serializer = PaymentsSerializer(payments, many=True)
         return Response(serializer.data, status=HTTP_200_OK)
-    
+
     def create(self, request, *args, **kwargs):
         
-        user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Desculpe, apenas administradores podem CRIAR payments',
-                status = HTTP_400_BAD_REQUEST
-            )
-        
-        data = request.data
-        if not data:
-            return Response(
-                'informe os dados do pagamento', 
-                status=HTTP_400_BAD_REQUEST
-            )
-        
-        value = float(data.get('value',0))
-        payment_type = data.get('payment_type')
-        
-        appointment_id = data.get('appointment')
-        appointment = Appointment.objects.get(id = appointment_id)
-
-        # repasse dos medicos
-        doctor_value = value * 0.7
-        clinic_value = value * 0.3
-        
-        payments = Payments.objects.create(
-            appointment = appointment,
-            value=value,
-            payment_type=payment_type,
-            doctor_value=doctor_value,
-            clinic_value=clinic_value
-        )
-
-        appointment.is_active = False
-        appointment.save()
-        
-        serializer = self.get_serializer(payments)
-        headers = self.get_success_headers(serializer.data)
-        
-        return Response(
-            serializer.data, 
-            status=HTTP_201_CREATED, 
-            headers=headers
-        )
+        try:
+            data = request.data
+            payment = self.payment_usecase.create_payment(data, request.user)
+            serializer = PaymentsSerializer(payment)
+            return Response(serializer.data, status=HTTP_201_CREATED)
+        except (PermissionError, ValueError) as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
 
 
-class AdminListViwSet(viewsets.ModelViewSet):
+class AdminListViewSet(viewsets.ViewSet):
     queryset = Payments.objects.all()
     serializer_class = AdminListSerializer
-    
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.admin_report_usecase = AdminListUseCase(AdminListRepository())
+
     def list(self, request, *args, **kwargs):
-        
-        user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_admin:
-            return Response(
-                'Desculpe, apenas administradores podem visualizar n\
-                relatórios financeiros',
-                status = HTTP_400_BAD_REQUEST
-            )
-            
-            #relatorio dos administradores 
-        list= []
-        for payment in self.queryset:
-            list.append({
-                'appointment': payment.appointment.id,
-                'date': payment.appointment.date,
-                'doctor': payment.appointment.doctor.user.username,
-                'patient': payment.appointment.patient.user.username,
-                'value': payment.value,
-                'payment_type': payment.payment_type
-            })
-        
-        return Response(
-            list,
-            status=HTTP_200_OK
-        )
+
+        try:
+            report = self.admin_report_usecase.admin_finance_list(request.user)
+            return Response(report, status=HTTP_200_OK)
+        except PermissionError as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
         
         
 class DoctorsListViwSet(viewsets.ModelViewSet):
-    queryset = Payments.objects.all()   
+    queryset = Payments.objects.all()
     serializer_class = DoctorListSerializer
     
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.doctor_list_usecase = DoctorListUseCase(DoctorListRepository())
+
     def list(self, request, *args, **kwargs):
-        
-        user = Users.objects.filter(pk = request.user.id).first()
-        if not request.user.is_authenticated or not user.is_doctor:
-            return Response(
-                'Desculpe, apenas MEDICOS podem visualizar relatórios financeiros',
-                status = HTTP_400_BAD_REQUEST
-            )
-            
-            # relatorio dos medicos
-        list= []
-        for payment in self.queryset:
-            list.append({
-                'patient': payment.appointment.patient.user.username,
-                'date': payment.appointment.date,
-                'value': payment.value,
-                'doctor_value': payment.doctor_value,
-            })
-        
-        return Response(
-            list,
-            status=HTTP_200_OK
-        )
-            
+        try:
+            report = self.doctor_list_usecase.doctor_finance_list(request.user)
+            return Response(report, status=HTTP_200_OK)
+        except PermissionError as e:
+            return Response(str(e), status=HTTP_400_BAD_REQUEST)
+

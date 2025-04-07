@@ -25,7 +25,7 @@ class UserUseCase:
         is_receptionist = data.get('is_receptionist', False)
 
         if not username or not password:
-            raise ValueError("Informe o username e a senha.")
+            raise ValueError("Informe o username ou a senha.")
         
 
         return self.user_repository.create_user(
@@ -34,7 +34,7 @@ class UserUseCase:
             is_admin=is_admin,
             is_receptionist=is_receptionist,
         )
-
+                                                                                                                                        
     def update_user(self, user_id, data, current_user):
         
         if not current_user.is_authenticated or not current_user.is_admin:
